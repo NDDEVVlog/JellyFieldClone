@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ToonShader
+  m_Shader: {fileID: 4800000, guid: 915deed61de0377468d1810832ece743, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _DEBUGMODE_TEXTURE
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _CapHeight: 0.4
+    - _CurrentSpeed: 0
+    - _DebugMode: 0
+    - _Glossiness: 38.1
+    - _GlowIntensity: 4
+    - _JiggleDamping: 3.5
+    - _JiggleSpeed: 12
+    - _JiggleStrength: 0.45
+    - _PulseSpeed: 4.9
+    - _Radius: 0.848
+    - _RimIntensity: 0.8
+    - _RimPower: 2.51
+    - _ScanSpeed: 0
+    - _SecondaryPhase: 2.1
+    - _ShadowSmooth: 0.05
+    - _ShadowThreshold: 0.5
+    - _SpecSize: 0.014
+    - _Speed: 0
+    - _StepSmoothness: 0
+    - _Steps: 1
+    - _TestWobble: 0
+    - _Thickness: 0.08
+    - _TiltAmount: 0.5
+    - _TiltDamping: 4
+    - _TiltStrength: 0.5
+    - _UseRim: 0
+    - _WaveAmp: 0.05
+    - _WaveFreq: 5
+    - _WaveFrequency: 6
+    - _WaveScale: 0.1
+    - _WaveSpeed: 4
+    - _WaveStrength: 0.05
+    m_Colors:
+    - _BaseColor: {r: 1, g: 0, b: 0, a: 1}
+    - _CustomLightDirection: {r: 0, g: -2.65, b: 0, a: 0}
+    - _GlowColor: {r: 0.39999998, g: 0.9, b: 1, a: 1}
+    - _MainColor: {r: 0.79704523, g: 0.9069518, b: 0.9622642, a: 1}
+    - _RimColor: {r: 0.4867924, g: 0.4867924, b: 0.4867924, a: 1}
+    - _ShadowColor: {r: 0.4037736, g: 0, b: 0.044863757, a: 1}
+    - _SloshColor: {r: 1, g: 0, b: 0, a: 1}
+    - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
+    - _TopColor: {r: 0.39999998, g: 0.19999996, b: 0.09999997, a: 1}
+    - _VelocityDir: {r: 0, g: 0, b: 0, a: 0}
+    - _WobbleVector: {r: 0, g: 0, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
