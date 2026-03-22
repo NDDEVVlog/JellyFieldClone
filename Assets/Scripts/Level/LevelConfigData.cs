@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-[CreateAssetMenu(fileName = "NewLevel", menuName = "LatteGames/LevelConfig")]
+[CreateAssetMenu(fileName = "NewLevel", menuName = "Jelly/LevelConfig")]
 public class LevelConfigData : ScriptableObject
 {
     [System.Serializable]
@@ -10,7 +10,8 @@ public class LevelConfigData : ScriptableObject
         public int cubeId;
         public int targetAmount;
     }
-
+    [Header("Level Palette")]
+    public List<int> availableCubeIds = new List<int>();
     public enum GridCellStartStatus { AllowToSpawn, Disable, LeftEmptyAtStart,AlwaysHasBlockInit}
 
     [Header("Missions")]

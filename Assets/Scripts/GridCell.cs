@@ -3,13 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using System.Threading;
+using System;
 
 public class GridCell : MonoBehaviour
 {
     private const int SIZE = 2;
-    public Vector2Int coord;
-    public GameObject cubePrefab;
     private int[,] _matrix = new int[SIZE, SIZE];
+    
+    // Dependencies (Truyền vào qua Initialize)
+    private GridController _controller;
+    private CubeDataConfig _config;
+    public Vector2Int coord;
 
     [System.Serializable]
     public class ClusterData
@@ -21,39 +25,43 @@ public class GridCell : MonoBehaviour
 
     public List<ClusterData> currentClusters = new List<ClusterData>();
 
-    public void Initialize(List<int> initialNumbers)
+    public void Initialize(GridController controller, CubeDataConfig config, List<int> initialNumbers, Vector2Int coord)
     {
+        _controller = controller;
+        _config = config;
+        this.coord = coord;
+
         for (int x = 0; x < SIZE; x++)
             for (int z = 0; z < SIZE; z++) _matrix[x, z] = -1;
 
-        bool fillHoriz = Random.value > 0.5f;
+        // Đổ dữ liệu ban đầu (Giữ nguyên logic gốc của bạn)
+        bool fillHoriz = UnityEngine.Random.value > 0.5f;
         for (int i = 0; i < Mathf.Min(initialNumbers.Count, 4); i++)
         {
             if (fillHoriz) _matrix[i % SIZE, i / SIZE] = initialNumbers[i];
             else _matrix[i / SIZE, i % SIZE] = initialNumbers[i];
         }
         
-        ApplyExpansionLogic(); // Tự lấp đầy lúc mới sinh
+        ApplyExpansionLogic(); 
         RefreshVisuals(false).Forget();
     }
 
-    // Manager gọi hàm này khi có màu bị xóa
     public async UniTask UpdateFromLogic(int[,] clearedData)
     {
         _matrix = clearedData;
-        
-        // Tự mình tính toán việc nở ra (Expand)
         ApplyExpansionLogic();
 
-        // Gửi dữ liệu sau khi nở lại cho Manager để đồng bộ Global Matrix
-        GridManager.Instance.SyncBackFromCell(coord, _matrix);
+        // Đồng bộ ngược lại cho Model toàn cục
+        for (int x = 0; x < SIZE; x++)
+            for (int z = 0; z < SIZE; z++)
+                _controller.SyncToModel(coord, x, z, _matrix[x, z]);
 
         await RefreshVisuals(true);
     }
 
     private void ApplyExpansionLogic()
     {
-        // 1. Phá thế caro (Đảm bảo không bao giờ có 2 màu nằm chéo nhau)
+        // 1. PHÁ THẾ CARO (Logic gốc của bạn)
         HashSet<int> uniqueIDs = new HashSet<int>();
         foreach (int id in _matrix) if (id != -1) uniqueIDs.Add(id);
 
@@ -63,7 +71,7 @@ public class GridCell : MonoBehaviour
             if (_matrix[0, 1] != -1 && _matrix[0, 1] == _matrix[1, 0]) _matrix[1, 0] = -1;
         }
 
-        // 2. Lấp đầy ô trống theo nguyên tắc CÂN BẰNG
+        // 2. LẤP ĐẦY THÔNG MINH (Cải tiến để không bao giờ bị rỗng)
         bool changed = true;
         while (changed)
         {
@@ -74,8 +82,12 @@ public class GridCell : MonoBehaviour
                 {
                     if (_matrix[x, z] == -1)
                     {
-                        // Tìm ID có số lượng ÍT NHẤT trong 4 ô để lấp vào
+                        // Thử lấy ID từ hàng xóm (Ưu tiên màu đang có ít nhất)
                         int id = GetBalancedNeighborID(x, z);
+                        
+                        // Nếu không có hàng xóm nào (ví dụ ô đầu tiên bị rỗng), lấy màu từ palette
+                        if (id == -1) id = GetRandomFromPalette();
+
                         if (id != -1)
                         {
                             _matrix[x, z] = id;
@@ -86,59 +98,58 @@ public class GridCell : MonoBehaviour
             }
         }
     }
-    public GameObject ExtractCubeAt(int lx, int lz)
-    {
-        
-        var cluster = currentClusters.FirstOrDefault(c => c.slots.Any(s => s.x == lx && s.y == lz));
-        if (cluster != null && cluster.cube != null)
-        {
-            GameObject cubeObj = cluster.cube;
-            
-            cluster.cube = null; 
-            currentClusters.Remove(cluster);
-            
-            cubeObj.transform.SetParent(null);
-            return cubeObj;
-        }
-        return null;
-    }
 
     private int GetBalancedNeighborID(int x, int z)
     {
-        // Tìm tất cả các ID hàng xóm xung quanh ô (x,z)
-        Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-        Dictionary<int, int> candidates = new Dictionary<int, int>();
+        Span<int> neighbors = stackalloc int[4];
+        int neighborCount = 0;
 
-        foreach (var d in dirs)
+        if (x > 0) neighbors[neighborCount++] = _matrix[x - 1, z];
+        if (x < SIZE - 1) neighbors[neighborCount++] = _matrix[x + 1, z];
+        if (z > 0) neighbors[neighborCount++] = _matrix[x, z - 1];
+        if (z < SIZE - 1) neighbors[neighborCount++] = _matrix[x, z + 1];
+
+        int bestId = -1;
+        int minCount = int.MaxValue;
+
+        for (int i = 0; i < neighborCount; i++)
         {
-            int nx = x + d.x;
-            int nz = z + d.y;
-            if (nx >= 0 && nx < SIZE && nz >= 0 && nz < SIZE)
+            int id = neighbors[i];
+            if (id == -1) continue;
+
+            int count = GetTotalIDCount(id);
+            if (count < minCount)
             {
-                int id = _matrix[nx, nz];
-                if (id != -1 && !candidates.ContainsKey(id))
-                {
-                    // Đếm xem ID này đang chiếm bao nhiêu ô trong tổng số 4 ô
-                    candidates[id] = GetTotalIDCount(id);
-                }
+                minCount = count;
+                bestId = id;
             }
         }
+        return bestId;
+    }
 
-        if (candidates.Count == 0) return -1;
-
-        // SẮP XẾP: Thằng nào có số lượng ô (Count) nhỏ nhất thì chọn thằng đó
-        // Ví dụ: Màu Tím có 2 ô, màu Xanh có 1 ô -> Chọn màu Xanh để lấp vào ô trống.
-        // Điều này ngăn chặn màu Tím nhảy lên 3 ô.
-        return candidates.OrderBy(kvp => kvp.Value).First().Key;
+    private int GetRandomFromPalette()
+    {
+        var palette = _controller.CurrentLevelPalette;
+        if (palette == null || palette.Count == 0) return -1;
+        
+        // Ưu tiên lấy màu chưa xuất hiện trong Cell này để phá thế caro/trùng lặp
+        foreach (var id in palette)
+        {
+            if (GetTotalIDCount(id) == 0) return id;
+        }
+        return palette[UnityEngine.Random.Range(0, palette.Count)];
     }
 
     private int GetTotalIDCount(int id)
     {
         int count = 0;
-        foreach (int val in _matrix) if (val == id) count++;
+        for (int x = 0; x < SIZE; x++)
+            for (int z = 0; z < SIZE; z++)
+                if (_matrix[x, z] == id) count++;
         return count;
     }
-    // --- CÁC HÀM VISUAL GIỮ NGUYÊN ---
+
+    // --- CÁC HÀM VISUAL & POOLING ---
     private async UniTask RefreshVisuals(bool animate)
     {
         var clusters = FindLocalClusters();
@@ -150,12 +161,12 @@ public class GridCell : MonoBehaviour
             float minX = nc.slots.Min(s => s.x), maxX = nc.slots.Max(s => s.x);
             float minZ = nc.slots.Min(s => s.y), maxZ = nc.slots.Max(s => s.y);
             
-            Vector3 targetScale = new Vector3((maxX - minX + 1) * 0.96f, 0.8f, (maxZ - minZ + 1) * 0.96f);
+            Vector3 targetScale = new Vector3((maxX - minX + 1) * 0.95f, 0.8f, (maxZ - minZ + 1) * 0.95f);
             Vector3 targetPos = new Vector3(((minX + maxX) / 2f) - 0.5f, 0, ((minZ + maxZ) / 2f) - 0.5f);
 
             var existing = currentClusters.FirstOrDefault(c => c.id == nc.id && c.slots.Any(s => nc.slots.Contains(s)));
             
-            if (existing != null)
+            if (existing != null && existing.cube != null)
             {
                 existing.slots = nc.slots;
                 if (animate) AnimateVisual(existing.cube.transform, targetPos, targetScale, ct).Forget();
@@ -166,10 +177,9 @@ public class GridCell : MonoBehaviour
             else
             {
                 GameObject cubeObj = CubePool.Instance.Get(transform);
-                cubeObj.GetComponent<Renderer>().material.color = GridManager.Instance.GetColorFromID(nc.id);
-                
+                cubeObj.GetComponent<Renderer>().material.color = _config.GetColor(nc.id);
                 cubeObj.transform.localPosition = targetPos;
-                cubeObj.transform.localScale = Vector3.zero; // Spawn từ 0
+                cubeObj.transform.localScale = animate ? Vector3.zero : targetScale;
                 
                 AnimateVisual(cubeObj.transform, targetPos, targetScale, ct).Forget();
                 nextClusters.Add(new ClusterData { id = nc.id, slots = nc.slots, cube = cubeObj });
@@ -214,33 +224,40 @@ public class GridCell : MonoBehaviour
         return results;
     }
 
-    // Trong GridCell.cs
-
     private async UniTask AnimateVisual(Transform t, Vector3 tPos, Vector3 tScale, CancellationToken ct)
     {
         if (t == null) return;
-
+        float elapsed = 0;
+        float duration = 0.25f;
         Vector3 sPos = t.localPosition;
         Vector3 sScale = t.localScale;
-        float elapsed = 0;
-        float duration = GridManager.Instance.animDuration;
 
         while (elapsed < duration)
         {
+            if (t == null || ct.IsCancellationRequested) return;
             elapsed += Time.deltaTime;
-            // Lấy giá trị từ Curve (nên dùng curve có overshoot để tạo cảm giác jelly nảy)
-            float p = GridManager.Instance.expandCurve.Evaluate(elapsed / duration);
+            float p = elapsed / duration;
+            float curve = Mathf.Sin(p * Mathf.PI * 0.5f); 
 
-            // Sử dụng LerpUnclamped để cho phép khối "nở" quá kích cỡ rồi co lại (nếu curve > 1)
-            t.localPosition = Vector3.LerpUnclamped(sPos, tPos, p);
-            t.localScale = Vector3.LerpUnclamped(sScale, tScale, p);
-
+            t.localPosition = Vector3.Lerp(sPos, tPos, curve);
+            t.localScale = Vector3.Lerp(sScale, tScale, curve);
             await UniTask.Yield(PlayerLoopTiming.Update, ct);
-            if (ct.IsCancellationRequested) return;
         }
+        if (t != null) { t.localPosition = tPos; t.localScale = tScale; }
+    }
 
-        t.localPosition = tPos;
-        t.localScale = tScale;
+    public GameObject ExtractCubeAt(int lx, int lz)
+    {
+        var cluster = currentClusters.FirstOrDefault(c => c.slots.Any(s => s.x == lx && s.y == lz));
+        if (cluster != null && cluster.cube != null)
+        {
+            GameObject cubeObj = cluster.cube;
+            cluster.cube = null; 
+            currentClusters.Remove(cluster);
+            cubeObj.transform.SetParent(null);
+            return cubeObj;
+        }
+        return null;
     }
 
     public void SelfDestruct()
@@ -249,4 +266,8 @@ public class GridCell : MonoBehaviour
         Destroy(gameObject);
     }
     public int GetIDAtLocal(int x, int z) => _matrix[x, z];
+    public void UpdateCoordinate(Vector2Int newCoord)
+    {
+        this.coord = newCoord;
+    }
 }
