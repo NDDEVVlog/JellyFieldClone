@@ -1,12 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using UnityEngine.Events;
 
 public class GridView : MonoBehaviour
 {
     [SerializeField] private GameObject backgroundPrefab;
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private float cellSpacing = 2.4f;
+
+    public UnityEvent afterMerge;
 
     public Vector3 GetWorldPos(int x, int z) => new Vector3(x * cellSpacing, 0, z * cellSpacing);
 
@@ -33,6 +36,7 @@ public class GridView : MonoBehaviour
         if (MergeAnimator.Instance != null)
         {   Debug.Log("Play MergeAnimation");
             await MergeAnimator.Instance.PlayMergeAnimation(cubes, id);
+            afterMerge?.Invoke();
         }
             
         else 

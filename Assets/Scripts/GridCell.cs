@@ -10,7 +10,7 @@ public class GridCell : MonoBehaviour
     private const int SIZE = 2;
     private int[,] _matrix = new int[SIZE, SIZE];
     
-    // Dependencies (Truyền vào qua Initialize)
+
     private GridController _controller;
     private CubeDataConfig _config;
     public Vector2Int coord;
@@ -61,7 +61,7 @@ public class GridCell : MonoBehaviour
 
     private void ApplyExpansionLogic()
     {
-        // 1. PHÁ THẾ CARO (Logic gốc của bạn)
+
         HashSet<int> uniqueIDs = new HashSet<int>();
         foreach (int id in _matrix) if (id != -1) uniqueIDs.Add(id);
 
@@ -71,7 +71,7 @@ public class GridCell : MonoBehaviour
             if (_matrix[0, 1] != -1 && _matrix[0, 1] == _matrix[1, 0]) _matrix[1, 0] = -1;
         }
 
-        // 2. LẤP ĐẦY THÔNG MINH (Cải tiến để không bao giờ bị rỗng)
+       
         bool changed = true;
         while (changed)
         {
@@ -82,10 +82,10 @@ public class GridCell : MonoBehaviour
                 {
                     if (_matrix[x, z] == -1)
                     {
-                        // Thử lấy ID từ hàng xóm (Ưu tiên màu đang có ít nhất)
+                        
                         int id = GetBalancedNeighborID(x, z);
                         
-                        // Nếu không có hàng xóm nào (ví dụ ô đầu tiên bị rỗng), lấy màu từ palette
+                        
                         if (id == -1) id = GetRandomFromPalette();
 
                         if (id != -1)
@@ -149,7 +149,7 @@ public class GridCell : MonoBehaviour
         return count;
     }
 
-    // --- CÁC HÀM VISUAL & POOLING ---
+  
     private async UniTask RefreshVisuals(bool animate)
     {
         var clusters = FindLocalClusters();

@@ -14,7 +14,8 @@ public class UIManager : MonoBehaviour
     }
 
     public void BeforeGameStart(CubeDataConfig cubeDataConfig, LevelConfigData levelConfigData)
-    {
+    {   
+        
         cubeConfig = cubeDataConfig;
         _currentLevel = levelConfigData;
 

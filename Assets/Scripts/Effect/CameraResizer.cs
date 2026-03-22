@@ -3,11 +3,24 @@ using UnityEngine;
 public class CameraAutoFit : MonoBehaviour
 {
     private Camera _cam;
-    [SerializeField] private float padding = 1.5f; // Khoảng cách lề bao quanh Grid
+    [SerializeField] private float padding = 1.5f; 
 
     void Awake() => _cam = GetComponent<Camera>();
 
-    // Gọi hàm này sau khi Grid đã được tạo xong hoàn toàn
+    public Vector3 GetWorldPointAtScreenBottom()
+    {
+
+        Ray ray = _cam.ViewportPointToRay(new Vector3(0.5f, 0.15f, 0));
+        Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
+
+        if (groundPlane.Raycast(ray, out float distance))
+        {
+            return ray.GetPoint(distance);
+        }
+        return Vector3.zero;
+    }
+
+
     public void FitCamera(int width, int height, float spacing)
     {
         

@@ -5,7 +5,7 @@ using UnityEngine;
 public class LevelEditor : Editor
 {
     SerializedProperty missionGoalsProp;
-    SerializedProperty availableCubeIdsProp; // Thêm biến này
+    SerializedProperty availableCubeIdsProp; 
 
     private void OnEnable()
     {
@@ -53,11 +53,9 @@ public class LevelEditor : Editor
                 var status = data.startMatrix[y][x];
                 GUI.color = GetColor(status);
 
-                // Nút bấm thay đổi trạng thái ô
                 if (GUILayout.Button("", GUILayout.Width(35), GUILayout.Height(35)))
                 {
                     Undo.RecordObject(data, "Change Cell Status");
-                    // Chuyển đổi giữa 4 trạng thái (0 đến 3)
                     data.startMatrix[y][x] = (LevelConfigData.GridCellStartStatus)(((int)status + 1) % 4);
                     data.SaveMatrix();
                     EditorUtility.SetDirty(data);

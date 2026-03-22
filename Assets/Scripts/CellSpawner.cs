@@ -1,4 +1,4 @@
-// CellSpawner.cs hoàn chỉnh
+
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -29,6 +29,7 @@ public class CellSpawner : MonoBehaviour
         cubeConfig = cubeDataConfig;
         _currentLevel = levelConfigData;
 
+        RepositionSpawner();
         SpawnAllSlots();
     }
 
@@ -45,8 +46,7 @@ public class CellSpawner : MonoBehaviour
         GameObject cellObj = Instantiate(cellPrefab, spawnPoints[index].position, Quaternion.identity, transform);
         GridCell cell = cellObj.GetComponent<GridCell>();
 
-        // TRUYỀN DATA (Dependency Injection)
-        // Vì chưa đặt vào lưới, ta truyền tọa độ tạm là (-1, -1)
+        
         cell.Initialize(
             GridController.Instance, 
             cubeConfig, 
@@ -78,7 +78,7 @@ public class CellSpawner : MonoBehaviour
             if (_activeChoices[i] == cell) 
             { 
                 _activeChoices[i] = null; 
-                // Delay một chút trước khi spawn slot mới cho mượt
+
                 SpawnNewSlotWithDelay(i).Forget(); 
                 break; 
             }
@@ -89,5 +89,13 @@ public class CellSpawner : MonoBehaviour
     {
         await UniTask.Delay(500);
         SpawnAtSlot(index);
+    }
+    public void RepositionSpawner()
+    {
+        CameraAutoFit camFit = Camera.main.GetComponent<CameraAutoFit>();
+        if (camFit != null)
+        {
+            transform.position = camFit.GetWorldPointAtScreenBottom();
+        }
     }
 }

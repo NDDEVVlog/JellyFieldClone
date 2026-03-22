@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
+using UnityEngine.Events;
 
 public enum GameState { Locked, Idle, Processing }
 
@@ -26,6 +27,8 @@ public class GridController : MonoBehaviour
     [SerializeField] private int minCellThreshold = 4; 
     [SerializeField] private int spawnAmount = 2;      
 
+
+    public UnityEvent onPlace;
     void Awake() => Instance = this;
 
     void Start()
@@ -240,7 +243,7 @@ public class GridController : MonoBehaviour
         if (_currentLevel.startMatrix[cz][cx] == LevelConfigData.GridCellStartStatus.Disable) return false;
         if (_cells[cx, cz] != null) return false;
 
-        // Chấp nhận đặt cell
+      
         _state = GameState.Processing;
         
 
@@ -260,6 +263,8 @@ public class GridController : MonoBehaviour
         await ProcessChainReaction();
 
         _state = GameState.Idle;
+        
+        onPlace?.Invoke();
         return true;
     }
     private bool CheckAndRefillGrid()
@@ -267,7 +272,7 @@ public class GridController : MonoBehaviour
         int currentCellCount = 0;
         List<Vector2Int> emptyPositions = new List<Vector2Int>();
 
-        // 1. Đếm số lượng cell hiện có và tìm các ô trống hợp lệ
+        
         for (int x = 0; x < _currentLevel.width; x++)
         {
             for (int z = 0; z < _currentLevel.height; z++)
@@ -283,10 +288,10 @@ public class GridController : MonoBehaviour
             }
         }
 
-        // 2. Nếu số lượng thấp hơn ngưỡng yêu cầu
+        
         if (currentCellCount < minCellThreshold && emptyPositions.Count > 0)
         {
-            // Tính toán số lượng cần spawn (không vượt quá số ô trống)
+            
             int actualSpawnCount = Mathf.Min(Random.Range(1, spawnAmount + 1), emptyPositions.Count);
 
             for (int i = 0; i < actualSpawnCount; i++)

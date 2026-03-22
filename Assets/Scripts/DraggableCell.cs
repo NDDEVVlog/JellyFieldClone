@@ -1,12 +1,14 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Cysharp.Threading.Tasks;
+using UnityEngine.Events;
 
 public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
 {
     private Vector3 _startPos;
     private GridCell _cell;
     private bool _isDragging = false;
+  
 
     void Awake() => _cell = GetComponent<GridCell>();
 
@@ -15,7 +17,7 @@ public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, I
         if (_isDragging) return;
         
         _startPos = transform.position;
-        // Hiệu ứng nhấc lên: hơi to ra và nảy nhẹ
+        
         transform.localScale *= 1.1f;
         _isDragging = true;
     }
@@ -24,11 +26,11 @@ public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, I
     {
         if (!_isDragging) return;
 
-        // Sử dụng Manager để lấy vị trí chuột trong không gian 3D
+        
         Vector3? mousePos = DragDropManager.Instance.GetMouseWorldPosition();
         if (mousePos.HasValue) 
         {
-            // Nhấc cao hơn mặt đất (Y = 0.5) để không bị xuyên qua sàn
+            
             transform.position = mousePos.Value + Vector3.up * 0.5f;
         }
     }
@@ -40,21 +42,19 @@ public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, I
 
         transform.localScale /= 1.1f;
 
-        // ĐỔI TỪ GridManager SANG GridController
-        // await để đợi logic xử lý (check match, animation...) hoàn tất
+       
         bool success = await GridController.Instance.TryPlaceCell(_cell);
         
         if (success)
         {
-            // Nếu đặt thành công, thông báo cho Spawner để sinh cell mới vào khay
-            CellSpawner.Instance.OnCellPlaced(this);
             
-            // Hủy script kéo thả này để cell nằm yên trên lưới
+            CellSpawner.Instance.OnCellPlaced(this);
+           
             Destroy(this); 
         }
         else
         {
-            // Nếu đặt không hợp lệ (ngoài biên, ô đã có cell...), bay về chỗ cũ
+        
             MoveBack().Forget();
         }
     }
@@ -62,7 +62,7 @@ public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, I
     
     private async UniTaskVoid MoveBack()
     {
-        var ct = this.GetCancellationTokenOnDestroy(); // Lấy token từ object này
+        var ct = this.GetCancellationTokenOnDestroy(); 
         float duration = 0.2f;
         float elapsed = 0;
         Vector3 currentPos = transform.position;
@@ -71,7 +71,6 @@ public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, I
         {
             elapsed += Time.deltaTime;
             transform.position = Vector3.Lerp(currentPos, _startPos, elapsed / duration);
-            // Truyền ct vào Yield để nó tự dừng nếu object bị xóa
             await UniTask.Yield(PlayerLoopTiming.Update, ct); 
         }
         transform.position = _startPos;
