@@ -16,17 +16,17 @@ public class MergeAnimator : MonoBehaviour
 
     void Awake() => Instance = this;
 
-    public async UniTask PlayMergeAnimation(List<GameObject> cubes)
+    public async UniTask PlayMergeAnimation(List<GameObject> cubes,int id)
     {
         if (cubes == null || cubes.Count == 0) return;
 
-        // 1. Tính toán tâm điểm của vụ nổ (Center Point)
+        
         Vector3 center = Vector3.zero;
         foreach (var c in cubes) center += c.transform.position;
         center /= cubes.Count;
-        center.y += liftHeight; // Tâm điểm ở trên cao
+        center.y += liftHeight; 
 
-        // 2. Nâng tất cả các khối lên
+        
         List<UniTask> liftTasks = new List<UniTask>();
         foreach (var cube in cubes)
         {
@@ -34,15 +34,15 @@ public class MergeAnimator : MonoBehaviour
         }
         await UniTask.WhenAll(liftTasks);
 
-        // 3. Bay vào tâm và thu nhỏ
+        
         List<UniTask> moveTasks = new List<UniTask>();
         foreach (var cube in cubes)
         {
-            moveTasks.Add(AnimateMoveToCenter(cube.transform, center));
+            moveTasks.Add(AnimateMoveToCenter(cube.transform, center,id));
         }
         await UniTask.WhenAll(moveTasks);
 
-        // 4. Dọn dẹp
+        
         foreach (var cube in cubes)
         {
             if (cube) CubePool.Instance.ReturnToPool(cube);
@@ -63,15 +63,21 @@ public class MergeAnimator : MonoBehaviour
         }
     }
 
-    private async UniTask AnimateMoveToCenter(Transform t, Vector3 center)
+    private async UniTask AnimateMoveToCenter(Transform t, Vector3 center,int id)
     {
         Vector3 startPos = t.position;
         Vector3 startScale = t.localScale;
         float elapsed = 0;
+        bool playParticle = false;
         while (elapsed < moveDuration)
         {
             if (t == null) return;
             elapsed += Time.deltaTime;
+            if(elapsed > (moveDuration - moveDuration/3f)&& !playParticle)
+            {   playParticle = true;
+                ParticlePoolManager.Instance.PlayEffect(t.transform.position,LevelManager.Instance.GetCubeData().GetColor(id));
+            }
+
             float p = moveCurve.Evaluate(elapsed / moveDuration);
             t.position = Vector3.LerpUnclamped(startPos, center, p);
             t.localScale = Vector3.LerpUnclamped(startScale, Vector3.zero, p);

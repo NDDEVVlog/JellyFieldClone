@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c54dfd79e9ff94943810153b93ee1c17, type: 3}
-  m_Name: NewLevel
+  m_Name: Level2
   m_EditorClassIdentifier: Assembly-CSharp::LevelConfigData
-  availableCubeIds: 010000000200000003000000
+  availableCubeIds: 01000000020000000300000004000000
   missionGoals:
-  - cubeId: 0
-    targetAmount: 0
-  - cubeId: 0
-    targetAmount: 0
-  - cubeId: 0
-    targetAmount: 0
+  - cubeId: 1
+    targetAmount: 10
+  - cubeId: 2
+    targetAmount: 6
+  - cubeId: 3
+    targetAmount: 5
   width: 4
   height: 4
-  serializedData: 00000000000000000300000000000000030000000100000003000000030000000000000002000000010000000000000002000000000000000000000003000000
+  serializedData: 010000000200000000000000020000000000000001000000020000000100000003000000010000000000000000000000030000000200000001000000

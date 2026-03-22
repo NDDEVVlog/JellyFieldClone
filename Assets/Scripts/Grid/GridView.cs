@@ -28,11 +28,11 @@ public class GridView : MonoBehaviour
         return cell;
     }
 
-    public async UniTask PlayMergeAnimation(List<GameObject> cubes)
+    public async UniTask PlayMergeAnimation(List<GameObject> cubes,int id)
     {
         if (MergeAnimator.Instance != null)
         {   Debug.Log("Play MergeAnimation");
-            await MergeAnimator.Instance.PlayMergeAnimation(cubes);
+            await MergeAnimator.Instance.PlayMergeAnimation(cubes, id);
         }
             
         else 

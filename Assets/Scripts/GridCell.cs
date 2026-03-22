@@ -177,7 +177,14 @@ public class GridCell : MonoBehaviour
             else
             {
                 GameObject cubeObj = CubePool.Instance.Get(transform);
-                cubeObj.GetComponent<Renderer>().material.color = _config.GetColor(nc.id);
+                Material mat = cubeObj.GetComponentInChildren<SkinnedMeshRenderer>().material;
+
+                Color bodyColor = _config.GetColor(nc.id);
+                Color topColor = bodyColor * 0.6f;
+                topColor.a = 1f;
+                mat.SetColor("_BaseColor",bodyColor );
+                mat.SetColor("_TopColor",topColor);
+
                 cubeObj.transform.localPosition = targetPos;
                 cubeObj.transform.localScale = animate ? Vector3.zero : targetScale;
                 

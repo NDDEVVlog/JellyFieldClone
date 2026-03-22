@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using JetBrains.Annotations;
 
 public enum GameState { Locked, Idle, Processing }
 
@@ -10,7 +11,7 @@ public class GridController : MonoBehaviour
     public static GridController Instance { get; private set; }
 
     [Header("Settings")]
-    public CubeDataConfig cubeConfig;
+    private CubeDataConfig cubeConfig;
     [Range(0, 1)] public float randomSpawnChance = 0.3f;
 
     private GridData _model;
@@ -20,7 +21,24 @@ public class GridController : MonoBehaviour
     private GameState _state = GameState.Locked;
     public List<int> CurrentLevelPalette => _currentLevel != null ? _currentLevel.availableCubeIds : new List<int>();
 
+
+    [Header("Auto Spawn Settings")]
+    [SerializeField] private int minCellThreshold = 4; 
+    [SerializeField] private int spawnAmount = 2;      
+
     void Awake() => Instance = this;
+
+    void Start()
+    {
+        LevelManager.Instance.BeforeGameStart+= BeforeGameStart;
+    }
+
+    public void BeforeGameStart(CubeDataConfig cubeDataConfig, LevelConfigData levelConfigData)
+    {
+        cubeConfig = cubeDataConfig;
+        _currentLevel = levelConfigData;
+        InitializeLevel(levelConfigData);
+    }
 
     public void InitializeLevel(LevelConfigData level)
     {
@@ -33,13 +51,13 @@ public class GridController : MonoBehaviour
         _state = GameState.Locked;
         _currentLevel = level;
 
-        // QUAN TRỌNG: Phải LoadMatrix trước khi dùng startMatrix
+        
         _currentLevel.LoadMatrix(); 
 
         _model = new GridData(level.width, level.height);
         _cells = new GridCell[level.width, level.height];
 
-        // Đảm bảo lấy được View
+        
         if (_view == null) _view = GetComponent<GridView>();
         
         if (_view == null)
@@ -54,7 +72,7 @@ public class GridController : MonoBehaviour
 
     private async UniTaskVoid SetupBoard()
     {
-        // Kiểm tra an toàn một lần nữa trước khi vào loop
+        
         if (_currentLevel == null || _currentLevel.startMatrix == null)
         {
             Debug.LogError("SetupBoard: startMatrix chưa được khởi tạo!");
@@ -65,7 +83,7 @@ public class GridController : MonoBehaviour
         {
             for (int x = 0; x < _currentLevel.width; x++)
             {
-                // Kiểm tra chỉ số mảng (Dòng 43 thường nằm ở đây)
+                
                 if (z >= _currentLevel.startMatrix.Length || x >= _currentLevel.startMatrix[z].Length)
                 {
                     Debug.LogWarning($"SetupBoard: Tọa độ {x},{z} nằm ngoài ma trận!");
@@ -84,6 +102,15 @@ public class GridController : MonoBehaviour
                 }
             }
         }
+
+
+         var cameraFit = Camera.main.GetComponent<CameraAutoFit>();
+        if (cameraFit != null)
+        {
+            cameraFit.FitCamera(_currentLevel.width, _currentLevel.height, 2.4f);
+        }
+
+
         await ProcessChainReaction();
         _state = GameState.Idle;
     }
@@ -102,44 +129,43 @@ public class GridController : MonoBehaviour
 
     private List<int> GetSafeIds(int x, int z)
     {
-        // 1. Lấy danh sách màu từ Level hiện tại
+        
         var palette = _currentLevel.availableCubeIds;
 
-        // KIỂM TRA: Nếu Level chưa được gán màu nào, báo lỗi và lấy tạm từ Config tổng
+        
         if (palette == null || palette.Count == 0)
         {
             Debug.LogError($"[GridController] Level '{_currentLevel.name}' chưa có availableCubeIds! Hãy kiểm tra trong Inspector.");
-            // Fallback: Lấy tất cả ID từ config nếu level bị trống
+            
             palette = cubeConfig.configCubeData.ConvertAll(c => c.id);
         }
 
         var forbidden = new HashSet<int>();
 
-        // 2. Kiểm tra hàng xóm để tránh trùng màu cạnh nhau
-        // Lấy giá trị từ Model (Global Matrix)
+        
         forbidden.Add(_model.GetValue((x - 1) * 2 + 1, z * 2));     // Bên trái dưới
         forbidden.Add(_model.GetValue((x - 1) * 2 + 1, z * 2 + 1)); // Bên trái trên
         forbidden.Add(_model.GetValue(x * 2, (z - 1) * 2 + 1));     // Bên dưới trái
         forbidden.Add(_model.GetValue(x * 2 + 1, (z - 1) * 2 + 1)); // Bên dưới phải
 
-        // 3. Lọc danh sách màu "an toàn" (không nằm trong forbidden)
+        
         var safe = new List<int>();
         foreach (var id in palette)
         {
             if (!forbidden.Contains(id)) safe.Add(id);
         }
 
-        // 4. Nếu tất cả màu đều bị cấm (hiếm gặp), quay lại dùng toàn bộ palette
+        
         if (safe.Count == 0) safe = palette;
 
-        // 5. Kiểm tra cuối cùng để tránh lỗi Index out of range
+        
         if (safe.Count == 0)
         {
             Debug.LogError("[GridController] Không tìm thấy màu nào khả dụng! Hãy kiểm tra CubeDataConfig.");
-            return new List<int> { 0 }; // Trả về ID mặc định để không sập game
+            return new List<int> { 0 }; 
         }
 
-        // 6. Chọn ngẫu nhiên từ 2 đến 4 màu
+        
         int count = Random.Range(2, 5);
         var result = new List<int>();
         for (int i = 0; i < count; i++)
@@ -167,12 +193,22 @@ public class GridController : MonoBehaviour
                     if (cube != null) cubes.Add(cube);
                     _model.SetValue(p.x, p.y, -1);
                 }
+                
+                CheckWinAndLoseCondition.Instance.NotifyCubesCollected(targetID,cubes.Count);
 
-                await _view.PlayMergeAnimation(cubes);
+                await _view.PlayMergeAnimation(cubes,targetID);
                 await SyncAllCells();
                 await UniTask.Delay(500);
                 hasChanges = true;
 
+            }
+            else
+            {
+                if (CheckAndRefillGrid())
+                {
+                    hasChanges = true; 
+                    await UniTask.Delay(200); 
+                }
             }
         }
     }
@@ -180,11 +216,11 @@ public class GridController : MonoBehaviour
     {
         if (_model == null) return;
 
-        // Chuyển đổi tọa độ cục bộ của Cell (0,1) thành tọa độ toàn cầu của ma trận
+        
         int globalX = cellCoord.x * 2 + localX;
         int globalZ = cellCoord.y * 2 + localZ;
 
-        // Cập nhật giá trị vào Model
+        
         _model.SetValue(globalX, globalZ, id);
     }
 
@@ -192,40 +228,82 @@ public class GridController : MonoBehaviour
     {
         if (_state != GameState.Idle) return false;
 
-        // Tính toán tọa độ lưới dựa trên vị trí thế giới
-        // (Giả sử bạn để GridView quản lý spacing)
-        float spacing = 2.4f; // Nên lấy từ GridView.cellSpacing
+        
+        float spacing = 2.4f; 
         int cx = Mathf.RoundToInt(cell.transform.position.x / spacing);
         int cz = Mathf.RoundToInt(cell.transform.position.z / spacing);
 
-        // 1. Kiểm tra biên
+        
         if (cx < 0 || cz < 0 || cx >= _currentLevel.width || cz >= _currentLevel.height) return false;
         
-        // 2. Kiểm tra ô trống và ô bị Disable trong Level Design
+       
         if (_currentLevel.startMatrix[cz][cx] == LevelConfigData.GridCellStartStatus.Disable) return false;
         if (_cells[cx, cz] != null) return false;
 
         // Chấp nhận đặt cell
         _state = GameState.Processing;
         
-        // Đưa cell về đúng vị trí snap
+
         cell.transform.SetParent(_view.transform);
         cell.transform.position = _view.GetWorldPos(cx, cz);
         
-        // Cập nhật tọa độ và tham chiếu
+
         cell.UpdateCoordinate(new Vector2Int(cx, cz));
         _cells[cx, cz] = cell;
 
-        // Đồng bộ dữ liệu vào Model (Global Matrix)
+        
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 2; j++)
                 _model.SetValue(cx * 2 + i, cz * 2 + j, cell.GetIDAtLocal(i, j));
 
-        // Chạy chuỗi phản ứng (Merge, Expand...)
+        
         await ProcessChainReaction();
 
         _state = GameState.Idle;
         return true;
+    }
+    private bool CheckAndRefillGrid()
+    {
+        int currentCellCount = 0;
+        List<Vector2Int> emptyPositions = new List<Vector2Int>();
+
+        // 1. Đếm số lượng cell hiện có và tìm các ô trống hợp lệ
+        for (int x = 0; x < _currentLevel.width; x++)
+        {
+            for (int z = 0; z < _currentLevel.height; z++)
+            {
+                if (_cells[x, z] != null)
+                {
+                    currentCellCount++;
+                }
+                else if (_currentLevel.startMatrix[z][x] != LevelConfigData.GridCellStartStatus.Disable)
+                {
+                    emptyPositions.Add(new Vector2Int(x, z));
+                }
+            }
+        }
+
+        // 2. Nếu số lượng thấp hơn ngưỡng yêu cầu
+        if (currentCellCount < minCellThreshold && emptyPositions.Count > 0)
+        {
+            // Tính toán số lượng cần spawn (không vượt quá số ô trống)
+            int actualSpawnCount = Mathf.Min(Random.Range(1, spawnAmount + 1), emptyPositions.Count);
+
+            for (int i = 0; i < actualSpawnCount; i++)
+            {
+                int randomIndex = Random.Range(0, emptyPositions.Count);
+                Vector2Int pos = emptyPositions[randomIndex];
+
+                SpawnCellAt(pos.x, pos.y);
+                
+                emptyPositions.RemoveAt(randomIndex);
+                Debug.Log($"<color=yellow>Auto Refill:</color> Spawning cell at {pos}");
+            }
+
+            return true; 
+        }
+
+        return false; 
     }
 
     private async UniTask SyncAllCells()

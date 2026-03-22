@@ -1,40 +1,54 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Events;
 
 public class CheckWinAndLoseCondition : MonoBehaviour
 {
     public static CheckWinAndLoseCondition Instance { get; private set; }
 
     private Dictionary<int, int> _currentProgress = new Dictionary<int, int>();
-    private LevelConfigData _config;
     private bool _isGameOver = false;
+    private LevelConfigData _currentLevel;
+
+    public UnityEvent<int,int> onCollect;
+
+    public UnityEvent winEvent;
+    public UnityEvent loseEvent;
 
     void Awake() => Instance = this;
 
-    public void Setup(LevelConfigData config)
+    void Start()
     {
-        _config = config;
+        LevelManager.Instance.BeforeGameStart += BeforeGameStart;
+    }
+
+    public void BeforeGameStart(CubeDataConfig cubeDataConfig, LevelConfigData levelConfigData)
+    {
+        _currentLevel = levelConfigData;
         _currentProgress.Clear();
         _isGameOver = false;
 
-        // Khởi tạo tiến độ cho từng mục tiêu
-        foreach (var goal in config.missionGoals)
+        foreach (var goal in _currentLevel.missionGoals)
         {
             _currentProgress[goal.cubeId] = 0;
-            Debug.Log($"Mission: Collect {goal.targetAmount} cubes of ID {goal.cubeId}");
         }
     }
 
     public void NotifyCubesCollected(int cubeId, int amount)
-    {
+    {   
+        Debug.Log("collect id :" +cubeId+ "with amount:"+amount);
         if (_isGameOver || !_currentProgress.ContainsKey(cubeId)) return;
 
         _currentProgress[cubeId] += amount;
         
-        // Log tiến độ (Sau này bạn thay bằng cập nhật UI)
-        int target = _config.missionGoals.First(g => g.cubeId == cubeId).targetAmount;
-        Debug.Log($"Progress ID {cubeId}: {_currentProgress[cubeId]}/{target}");
+        // Find the target for this specific ID
+        int target = _currentLevel.missionGoals.First(g => g.cubeId == cubeId).targetAmount;
+        int remaining = target - _currentProgress[cubeId];
+
+        // Update the UI
+        //BlockCountManager.Instance.UpdateGoalUI(cubeId, remaining);
+        onCollect?.Invoke(cubeId,amount);
 
         CheckWinCondition();
     }
@@ -42,7 +56,7 @@ public class CheckWinAndLoseCondition : MonoBehaviour
     private void CheckWinCondition()
     {
         bool isAllFinished = true;
-        foreach (var goal in _config.missionGoals)
+        foreach (var goal in _currentLevel.missionGoals)
         {
             if (_currentProgress[goal.cubeId] < goal.targetAmount)
             {
@@ -52,39 +66,23 @@ public class CheckWinAndLoseCondition : MonoBehaviour
         }
 
         if (isAllFinished)
-        {
+        {   
+            winEvent?.Invoke();
             _isGameOver = true;
             Debug.Log("<color=green>LEVEL WIN!</color>");
-            // Trigger UI Win Panel ở đây
+            // LevelManager.Instance.LoadNextLevel(); // Call this when user clicks a button
         }
     }
 
-    public void CheckLoseCondition(GridCell[,] grid, int w, int h)
+    // Call this from your Grid Logic whenever a move is made
+    public void CheckLoseCondition(int emptySpacesCount)
     {
         if (_isGameOver) return;
 
-        bool hasEmptySpace = false;
-        for (int x = 0; x < w; x++)
-        {
-            for (int z = 0; z < h; z++)
-            {
-                // Chỉ kiểm tra những ô KHÔNG bị Disable
-                if (_config.startMatrix[z][x] != LevelConfigData.GridCellStartStatus.Disable)
-                {
-                    if (grid[x, z] == null)
-                    {
-                        hasEmptySpace = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!hasEmptySpace)
-        {
+        if (emptySpacesCount <= 0)
+        {   loseEvent?.Invoke();
             _isGameOver = true;
             Debug.Log("<color=red>GAME OVER: NO MORE MOVES!</color>");
-            // Trigger UI Lose Panel ở đây
         }
     }
 }

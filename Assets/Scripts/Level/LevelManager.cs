@@ -1,22 +1,37 @@
+using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class LevelManager : MonoBehaviour
 {
     public static LevelManager Instance { get; private set; }
 
     [SerializeField] private List<LevelConfigData> levels;
-    private int _currentLevelIndex = 0;
+    [SerializeField] private CubeDataConfig cubeDataConfig;
+    public int _currentLevelIndex = 0;
+
+    public Action<CubeDataConfig,LevelConfigData> BeforeGameStart;
+
+    public UnityEvent OnStartLevel;
 
     void Awake() => Instance = this;
 
     public void Start()
     {
-        StartLevel(0);
+        BeforeGameStart?.Invoke(cubeDataConfig,levels[_currentLevelIndex]);
+        OnStartLevel?.Invoke();
+    }
+    public void OnInvokeEvent()
+    {
+        OnStartLevel?.Invoke();
     }
 
-    public void LoadNextLevel()
-    {
+
+    public async void LoadNextLevel()
+    {   
+        await UniTask.WaitForSeconds(1f);
         _currentLevelIndex++;
         if (_currentLevelIndex < levels.Count) StartLevel(_currentLevelIndex);
     }
@@ -24,6 +39,15 @@ public class LevelManager : MonoBehaviour
     public void StartLevel(int index)
     {
         _currentLevelIndex = index;
-        GridController.Instance.InitializeLevel(levels[index]);
+        BeforeGameStart?.Invoke(cubeDataConfig,levels[_currentLevelIndex]);
     }
+
+    public async void Retry()
+    {
+        await UniTask.WaitForSeconds(1f);
+        BeforeGameStart?.Invoke(cubeDataConfig,levels[_currentLevelIndex]);
+    }
+
+    public CubeDataConfig GetCubeData() => cubeDataConfig;
+
 }

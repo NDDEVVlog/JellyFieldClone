@@ -9,6 +9,8 @@ public class CellSpawner : MonoBehaviour
     [SerializeField] private GameObject cellPrefab;
     [SerializeField] private Transform[] spawnPoints;
     private DraggableCell[] _activeChoices;
+    private CubeDataConfig cubeConfig;
+    private LevelConfigData _currentLevel;
 
     private void Awake()
     {
@@ -16,7 +18,21 @@ public class CellSpawner : MonoBehaviour
         _activeChoices = new DraggableCell[spawnPoints.Length];
     }
 
-    private void Start() => SpawnAllSlots();
+    void Start()
+    {
+        LevelManager.Instance.BeforeGameStart+= BeforeGameStart;
+        
+    }
+
+    public void BeforeGameStart(CubeDataConfig cubeDataConfig, LevelConfigData levelConfigData)
+    {
+        cubeConfig = cubeDataConfig;
+        _currentLevel = levelConfigData;
+
+        SpawnAllSlots();
+    }
+
+
 
     public void SpawnAllSlots()
     {
@@ -33,7 +49,7 @@ public class CellSpawner : MonoBehaviour
         // Vì chưa đặt vào lưới, ta truyền tọa độ tạm là (-1, -1)
         cell.Initialize(
             GridController.Instance, 
-            GridController.Instance.cubeConfig, 
+            cubeConfig, 
             GenerateRandomIDs(), 
             new Vector2Int(-1, -1)
         );
@@ -43,12 +59,11 @@ public class CellSpawner : MonoBehaviour
 
     private List<int> GenerateRandomIDs()
     {
-        // Fix lỗi GridManager: Lấy palette màu từ Config của Controller
-        var palette = GridController.Instance.cubeConfig.configCubeData;
-        var ids = palette.ConvertAll(s => s.id);
+        
+        var ids = _currentLevel.availableCubeIds;
         
         var result = new List<int>();
-        int count = Random.Range(2, 5); // Game thường yêu cầu ít nhất 2 màu để dễ merge
+        int count = Random.Range(2, 5); 
         for (int i = 0; i < count; i++)
         {
             result.Add(ids[Random.Range(0, ids.Count)]);

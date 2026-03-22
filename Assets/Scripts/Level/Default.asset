@@ -14,10 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CubeDataConfig
   configCubeData:
   - id: 1
-    color: {r: 0, g: 1, b: 0.053387165, a: 0}
+    color: {r: 0.21280874, g: 0.9169811, b: 0.25146928, a: 1}
   - id: 2
-    color: {r: 0, g: 1, b: 0.94968104, a: 0}
+    color: {r: 0.22069769, g: 0.8415094, b: 0.8098602, a: 1}
   - id: 3
-    color: {r: 1, g: 0, b: 0.740572, a: 0}
+    color: {r: 0.9245283, g: 0.25642577, b: 0.7516077, a: 1}
   - id: 4
-    color: {r: 0.2903453, g: 0.7433963, b: 0.35857108, a: 0}
+    color: {r: 0.81886786, g: 0.78346527, b: 0.13441789, a: 1}
+  - id: 5
+    color: {r: 0.735849, g: 0.16521885, b: 0.17796962, a: 1}
+  - id: 6
+    color: {r: 0.051842254, g: 0.02664995, b: 0.7433963, a: 1}

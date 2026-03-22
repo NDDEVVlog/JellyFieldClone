@@ -34,10 +34,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _CapHeight: 0.4
+    - _CapHeight: 0.8
     - _CurrentSpeed: 0
     - _DebugMode: 0
-    - _Glossiness: 38.1
+    - _Glossiness: 3.6
     - _GlowIntensity: 4
     - _JiggleDamping: 3.5
     - _JiggleSpeed: 12
@@ -45,11 +45,12 @@ Material:
     - _PulseSpeed: 4.9
     - _Radius: 0.848
     - _RimIntensity: 0.8
-    - _RimPower: 2.51
+    - _RimPower: 10
     - _ScanSpeed: 0
     - _SecondaryPhase: 2.1
     - _ShadowSmooth: 0.05
     - _ShadowThreshold: 0.5
+    - _Smoothness: 0.092
     - _SpecSize: 0.014
     - _Speed: 0
     - _StepSmoothness: 0
@@ -75,7 +76,7 @@ Material:
     - _ShadowColor: {r: 0.4037736, g: 0, b: 0.044863757, a: 1}
     - _SloshColor: {r: 1, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 1, g: 1, b: 1, a: 1}
-    - _TopColor: {r: 0.39999998, g: 0.19999996, b: 0.09999997, a: 1}
+    - _TopColor: {r: 0.4792453, g: 0.06939063, b: 0.00632963, a: 1}
     - _VelocityDir: {r: 0, g: 0, b: 0, a: 0}
     - _WobbleVector: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []

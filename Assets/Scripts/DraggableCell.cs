@@ -59,8 +59,10 @@ public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, I
         }
     }
 
+    
     private async UniTaskVoid MoveBack()
     {
+        var ct = this.GetCancellationTokenOnDestroy(); // Lấy token từ object này
         float duration = 0.2f;
         float elapsed = 0;
         Vector3 currentPos = transform.position;
@@ -68,11 +70,10 @@ public class DraggableCell : MonoBehaviour, IPointerDownHandler, IDragHandler, I
         while(elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            // Dùng Lerp để tạo cảm giác bay về mượt mà
             transform.position = Vector3.Lerp(currentPos, _startPos, elapsed / duration);
-            await UniTask.Yield();
+            // Truyền ct vào Yield để nó tự dừng nếu object bị xóa
+            await UniTask.Yield(PlayerLoopTiming.Update, ct); 
         }
-        
         transform.position = _startPos;
     }
 }
